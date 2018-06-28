@@ -45,6 +45,8 @@ const (
 	transID         nextKey = iota
 	transDesc       nextKey = iota
 	transMemo       nextKey = iota
+	balanceAmount   nextKey = iota
+	balanceUpdated  nextKey = iota
 )
 
 type Amount struct {
@@ -76,11 +78,13 @@ func (t Transaction) String() string {
 
 // Ofx contains a parsed Ofx document.
 type Ofx struct {
-	Type          AccountType
-	BankCode      string
-	BranchCode    string
-	AccountNumber string
-	Transactions  []*Transaction
+	Type           AccountType
+	BankCode       string
+	BranchCode     string
+	AccountNumber  string
+	Balance        string
+	BalanceUpdated string
+	Transactions   []*Transaction
 }
 
 func (o Ofx) String() string {
@@ -133,6 +137,12 @@ func Parse(f io.Reader) (*Ofx, error) {
 			case "FITID":
 				next = transID
 
+			case "BALAMT":
+				next = balanceAmount
+
+			case "DTASOF":
+				next = balanceUpdated
+
 			case "TRNAMT":
 				next = transAmount
 
@@ -167,6 +177,12 @@ func Parse(f io.Reader) (*Ofx, error) {
 
 			case transID:
 				trans.ID = res
+
+			case balanceAmount:
+				ofx.Balance = res
+
+			case balanceUpdated:
+				ofx.BalanceUpdated = strings.Join([]string{res[0:4], res[4:6], res[6:8]}, "-")
 
 			case transDatePosted:
 				if len(res) < 8 {
